@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Emily & Fer: Carrera de Pizza 🍕</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg-pastel: #fff0f3;
+            --card-bg: #ffffff;
+            --primary-emily: #ffb3ba;
+            --primary-emily-dark: #ff85a1;
+            --primary-fer: #bae1ff;
+            --primary-fer-dark: #70a6ff;
+            --text-color: #5c4d4d;
+            --border-radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Nunito', sans-serif;
+            margin: 0; padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-pastel);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 440px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(255, 182, 193, 0.3);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            border: 3px solid #fff;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-family: 'Fredoka', sans-serif;
+            color: var(--primary-emily-dark);
+            margin-bottom: 4px;
+        }
+
+        .round-tracker {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #854d0e;
+            background: #fef08a;
+            padding: 4px 12px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .scoreboard {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .score-box {
+            flex: 1; padding: 8px;
+            border-radius: 16px; text-align: center;
+            font-weight: 700; font-size: 0.85rem;
+        }
+
+        .score-emily { background-color: #ffe3e8; border: 2px solid var(--primary-emily); color: #d63384; }
+        .score-fer { background-color: #e2f0ff; border: 2px solid var(--primary-fer); color: #0d6efd; }
+
+        .score-metrics {
+            display: flex; justify-content: space-around;
+            font-size: 1rem; font-family: 'Fredoka', sans-serif;
+        }
+
+        .turn-banner {
+            width: 100%; padding: 8px 12px;
+            border-radius: 14px; text-align: center;
+            font-weight: 700; font-size: 0.95rem;
+            margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        .turn-emily { background-color: var(--primary-emily); color: #800020; }
+        .turn-fer { background-color: var(--primary-fer); color: #002b66; }
+
+        .timer-badge {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 8px; border-radius: 10px;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .timer-warning {
+            animation: pulse-red 0.5s infinite alternate;
+            color: #dc2626 !important;
+        }
+
+        @keyframes pulse-red {
+            from { background: rgba(255, 255, 255, 0.9); }
+            to { background: #fca5a5; }
+        }
+
+        .target-indicator {
+            background: #fff3bf;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            border: 2px dashed #eab308;
+            color: #854d0e;
+            text-align: center;
+        }
+
+        .game-arena {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin-bottom: 10px;
+        }
+
+        #pizzaCanvas {
+            border-radius: 50%;
+            box-shadow: 0 8px 20px rgba(220, 150, 100, 0.2);
+            background: #fff8f0;
+        }
+
+        .tray-container {
+            width: 100%;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 75px;
+            gap: 4px;
+        }
+
+        .tray-slot {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 55px;
+        }
+
+        .draggable-item {
+            font-size: 2rem;
+            cursor: grab;
+            transition: transform 0.1s ease;
+            touch-action: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .draggable-item span {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .draggable-item:active {
+            transform: scale(1.2);
+            cursor: grabbing;
+        }
+
+        .item-special {
+            animation: bounce-item 0.6s infinite alternate;
+        }
+
+        @keyframes bounce-item {
+            from { transform: translateY(0); }
+            to { transform: translateY(-4px); }
+        }
+
+        .btn-action {
+            width: 100%; padding: 10px;
+            border: none;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%);
+            color: #5a2a3a; font-family: 'Fredoka', sans-serif;
+            font-size: 1.05rem; border-radius: 16px;
+            cursor: pointer; margin-top: 8px;
+            box-shadow: 0 4px 12px rgba(255, 154, 158, 0.4);
+        }
+
+        .btn-reset-game {
+            background: transparent; border: none;
+            color: #a8a29e; font-size: 0.75rem;
+            margin-top: 10px; cursor: pointer; text-decoration: underline;
+        }
+
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(92, 77, 77, 0.4); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            padding: 20px; z-index: 10; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-card {
+            background: #fff; border-radius: var(--border-radius);
+            padding: 20px; width: 100%; text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .modal-btn {
+            margin-top: 12px; padding: 10px 20px;
+            border: none; background: var(--primary-emily-dark);
+            color: white; border-radius: 12px; font-weight: 700; cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .envelope-box {
+            width: 120px; height: 80px; background: #ffccd5;
+            margin: 12px auto; border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 5px 15px rgba(255, 182, 193, 0.5); cursor: pointer;
+        }
+
+        .floating-pop {
+            position: absolute;
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none;
+            animation: floatUp 0.8s forwards;
+            z-index: 100;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header-title">🍕 Emily & Fer: Carrera de Pizza ⚡</div>
+    <div class="round-tracker" id="roundTracker">Ronda 1</div>
+
+    <div class="scoreboard">
+        <div class="score-box score-emily">
+            Emily 💕
+            <div class="score-metrics">
+                <span id="emilyHearts">❤️ 0</span>
+                <span id="emilyChests">🧰 0</span>
+            </div>
+        </div>
+        <div class="score-box score-fer">
+            Fer ⚡
+            <div class="score-metrics">
+                <span id="ferHearts">❤️ 0</span>
+                <span id="ferChests">🧰 0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="turn-banner turn-emily" id="turnBanner">
+        <span id="turnText">Turno de Emily</span>
+        <span class="timer-badge" id="timerBadge">⏱️ 25s</span>
+    </div>
+
+    <div class="target-indicator" id="reqText">
+        ⚠️ Requisitos de la Ronda...
+    </div>
+
+    <div class="game-arena" id="arenaBox">
+        <canvas id="pizzaCanvas" width="260" height="260"></canvas>
+    </div>
+
+    <div class="tray-container" id="trayContainer">
+        <div class="tray-slot" id="slot0"></div>
+        <div class="tray-slot" id="slot1"></div>
+        <div class="tray-slot" id="slot2"></div>
+        <div class="tray-slot" id="slot3"></div>
+    </div>
+
+    <button class="btn-action hidden" id="btnStartNext" onclick="prepararSiguienteTurno()">➡️ Pasar Turno a Fer</button>
+    <button class="btn-reset-game" onclick="confirmarNuevoJuego()">🔄 Reiniciar Todo desde 0</button>
+</div>
+
+<!-- Modal de Inicio -->
+<div class="modal-overlay active" id="modalInicio">
+    <div class="modal-card">
+        <h2>🍕 Carrera de Pizza ⚡</h2>
+        <p style="margin: 12px 0; font-size: 0.9rem; color: #64748b;">
+            Arrastra los ingredientes a las zonas correspondientes de la pizza antes de que el tiempo se agote.
+        </p>
+        <button class="modal-btn" onclick="iniciarJuegoPrimeraVez()">🚀 ¡Comenzar Carrera!</button>
+    </div>
+</div>
+
+<!-- Modal de Resultados -->
+<div class="modal-overlay" id="modalResultado">
+    <div class="modal-card">
+        <h2 id="tituloResultado">🏆 ¡Resultado!</h2>
+        <div style="margin: 10px 0; font-size: 0.9rem;" id="resumenPuntuacion"></div>
+        
+        <div id="seccionSobre" class="hidden">
+            <p style="font-size: 0.88rem; font-weight: 700; color: #d63384;" id="premioGanadorTexto">
+                ¡Abre tu premio de victoria!
+            </p>
+            <div class="envelope-box" onclick="abrirSobre()">
+                <span style="font-size: 2rem;">🎁</span>
+            </div>
+        </div>
+
+        <div id="seccionEmpate" class="hidden">
+            <button class="modal-btn" onclick="iniciarNuevaRondaJuego()">🔄 Volver a jugar</button>
+        </div>
+
+        <div id="seccionPoema" class="hidden">
+            <div style="background: #fff0f3; padding: 12px; border-radius: 12px; margin: 10px 0; font-style: italic; font-size: 0.9rem;" id="poemaTexto"></div>
+            <p style="font-weight: 700; color: #28a745; font-size: 0.85rem;">+1 Corazón (❤️) asignado al ganador</p>
+            <button class="modal-btn" onclick="iniciarNuevaRondaJuego()">🚀 Pasar a la Siguiente Ronda</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRpRIgKBwL2ucoWBoGgYR05hyphfshtwOGptARio4c6BiHugjcvor6tyUPXdXXTrfsAg/exec";
+
+    const INGREDIENTES = [
+        { id: "pepperoni", nombre: "Pepperoni", emoji: "🔴", zonaAngle: 0, tipo: "normal" },
+        { id: "queso", nombre: "Queso", emoji: "🧀", zonaAngle: Math.PI / 2, tipo: "normal" },
+        { id: "champinon", nombre: "Champiñón", emoji: "🍄", zonaAngle: Math.PI, tipo: "normal" },
+        { id: "tomate", nombre: "Tomate", emoji: "🍅", zonaAngle: (3 * Math.PI) / 2, tipo: "normal" }
+    ];
+
+    let listaPoemasServidor = [];
+    let jugadorActual = "Emily";
+    let numeroRonda = 1;
+
+    let requisitosRonda = { pepperoni: 2, queso: 2, champinon: 2, tomate: 2 };
+    let ingredienteDestacadoId = "";
+
+    let conteoEmily = { pepperoni: 0, queso: 0, champinon: 0, tomate: 0, total: 0 };
+    let conteoFer = { pepperoni: 0, queso: 0, champinon: 0, tomate: 0, total: 0 };
+    
+    let ingredientesColocados = [];
+    let temporizador;
+    let tiempoRestante = 25;
+    let juegoActivo = false;
+    let ganadorRonda = "";
+
+    let cloneEl = null;
+    let dragData = null;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'pop') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+            gainNode.gain.setValueAtTime(0.15, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'win') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.setValueAtTime(450, now + 0.1);
+            osc.frequency.setValueAtTime(600, now + 0.2);
+            gainNode.gain.setValueAtTime(0.2, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            osc.start(now); osc.stop(now + 0.4);
+        } else if (type === 'slice') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.linearRampToValueAtTime(200, now + 0.15);
+            gainNode.gain.setValueAtTime(0.1, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            osc.start(now); osc.stop(now + 0.15);
+        } else if (type === 'bonus') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.2);
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        }
+    }
+
+    function iniciarMinijuegoCorte(callbackVictoria) {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; color:white; font-family:sans-serif;";
+        
+        overlay.innerHTML = `
+            <h2 style="margin-bottom: 5px;">🍕 ¡Corte de Victoria!</h2>
+            <p style="margin-bottom: 20px; color: #ddd;">Haz clic sobre la pizza para cortarla en 4 partes</p>
+            <div id="pizza-corte" style="position:relative; width:220px; height:220px; background:#f4c430; border-radius:50%; border:10px solid #d27d2d; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow: 0 0 30px rgba(244,196,48,0.4);">
+                <div style="position:absolute; width:100%; height:2px; background:rgba(0,0,0,0.15);"></div>
+                <div style="position:absolute; width:2px; height:100%; background:rgba(0,0,0,0.15);"></div>
+                <span id="cortes-restantes" style="font-size:26px; font-weight:bold; color:#333; background:rgba(255,255,255,0.85); padding:8px 15px; border-radius:12px;">4 cortes</span>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        let cortes = 4;
+        const pizzaEl = document.getElementById('pizza-corte');
+        const textoCortes = document.getElementById('cortes-restantes');
+
+        pizzaEl.addEventListener('click', () => {
+            cortes--;
+            playSound('slice');
+            if (cortes > 0) {
+                textoCortes.innerText = `${cortes} cortes`;
+            } else {
+                document.body.removeChild(overlay);
+                playSound('win');
+                callbackVictoria(); 
+            }
+        });
+    }
+
+    window.onload = () => {
+        sincronizarBD();
+        establecerRequisitosRonda();
+        dibujarArena();
+    };
+
+    function iniciarJuegoPrimeraVez() {
+        document.getElementById("modalInicio").classList.remove("active");
+        iniciarRondaJugador();
+    }
+
+    function sincronizarBD() {
+        fetch(APPS_SCRIPT_URL)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("emilyHearts").innerText = `❤️ ${data.emily.corazones}`;
+                document.getElementById("emilyChests").innerText = `🧰 ${data.emily.cofres}`;
+                document.getElementById("ferHearts").innerText = `❤️ ${data.fer.corazones}`;
+                document.getElementById("ferChests").innerText = `🧰 ${data.fer.cofres}`;
+                listaPoemasServidor = data.poemas || [];
+            });
+    }
+
+    function establecerRequisitosRonda() {
+        requisitosRonda = { pepperoni: 2, queso: 2, champinon: 2, tomate: 2 };
+        const opciones = ["pepperoni", "queso", "champinon", "tomate"];
+        ingredienteDestacadoId = opciones[Math.floor(Math.random() * opciones.length)];
+        requisitosRonda[ingredienteDestacadoId] = 3;
+
+        const ingObj = INGREDIENTES.find(i => i.id === ingredienteDestacadoId);
+        document.getElementById("roundTracker").innerText = `Ronda ${numeroRonda}`;
+        document.getElementById("reqText").innerHTML = `⚠️ Mínimo 2 por zona, ¡excepto <strong>${ingObj.nombre} ${ingObj.emoji}</strong> que requiere <strong>3</strong>!`;
+    }
+
+    function iniciarRondaJugador() {
+        ingredientesColocados = [];
+        juegoActivo = true;
+        tiempoRestante = 25;
+        
+        document.getElementById("turnText").innerText = `Turno de ${jugadorActual}`;
+        document.getElementById("turnBanner").className = `turn-banner turn-${jugadorActual.toLowerCase()}`;
+        document.getElementById("timerBadge").classList.remove("timer-warning");
+        document.getElementById("btnStartNext").classList.add("hidden");
+        
+        mezclarBandeja4();
+        dibujarArena();
+        iniciarTimer();
+    }
+
+    function mezclarBandeja4() {
+        for (let i = 0; i < 4; i++) {
+            document.getElementById(`slot${i}`).innerHTML = "";
+        }
+
+        const copiaIngredientes = INGREDIENTES.map(ing => ({...ing}));
+        copiaIngredientes.sort(() => Math.random() - 0.5);
+
+        if (Math.random() < 0.20) {
+            const idx = Math.floor(Math.random() * 4);
+            copiaIngredientes[idx] = { id: "queso_gold", nombre: "Dorado (+3s)", emoji: "🧀✨", zonaAngle: Math.PI / 2, tipo: "bonus" };
+        }
+
+        copiaIngredientes.forEach((ing, idx) => {
+            const item = document.createElement("div");
+            item.className = `draggable-item ${ing.tipo !== 'normal' ? 'item-special' : ''}`;
+            item.innerHTML = `${ing.emoji}<span>${ing.nombre}</span>`;
+            item.dataset.ingData = JSON.stringify(ing);
+
+            item.addEventListener("mousedown", startDrag);
+            item.addEventListener("touchstart", startDrag, {passive: false});
+
+            document.getElementById(`slot${idx}`).appendChild(item);
+        });
+    }
+
+    function startDrag(e) {
+        if (!juegoActivo) return;
+        e.preventDefault();
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        dragData = JSON.parse(e.currentTarget.dataset.ingData);
+
+        cloneEl = document.createElement("div");
+        cloneEl.innerText = dragData.emoji;
+        cloneEl.style.fontSize = "2.5rem";
+        cloneEl.style.position = "fixed";
+        cloneEl.style.zIndex = "1000";
+        cloneEl.style.pointerEvents = "none";
+        document.body.appendChild(cloneEl);
+
+        moveClone(clientX, clientY);
+
+        window.addEventListener("mousemove", onDragMove);
+        window.addEventListener("touchmove", onDragMove, {passive: false});
+        window.addEventListener("mouseup", onDragEnd);
+        window.addEventListener("touchend", onDragEnd);
+    }
+
+    function onDragMove(e) {
+        if (!cloneEl) return;
+        if (e.cancelable) e.preventDefault();
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        moveClone(clientX, clientY);
+    }
+
+    function onDragEnd(e) {
+        if (!cloneEl) return;
+
+        const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+        const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+
+        const canvas = document.getElementById("pizzaCanvas");
+        const rect = canvas.getBoundingClientRect();
+
+        const dropX = clientX - rect.left;
+        const dropY = clientY - rect.top;
+
+        if (dropX >= 0 && dropX <= canvas.width && dropY >= 0 && dropY <= canvas.height) {
+            evaluarDrop(dropX, dropY, dragData);
+        }
+
+        document.body.removeChild(cloneEl);
+        cloneEl = null;
+        dragData = null;
+
+        window.removeEventListener("mousemove", onDragMove);
+        window.removeEventListener("touchmove", onDragMove);
+        window.removeEventListener("mouseup", onDragEnd);
+        window.removeEventListener("touchend", onDragEnd);
+    }
+
+    function moveClone(x, y) {
+        cloneEl.style.left = (x - 20) + "px";
+        cloneEl.style.top = (y - 20) + "px";
+    }
+
+    function mostrarPopFlotante(texto, color) {
+        const pop = document.createElement("div");
+        pop.className = "floating-pop";
+        pop.innerText = texto;
+        pop.style.color = color;
+        pop.style.left = "50%";
+        pop.style.top = "40%";
+        document.getElementById("arenaBox").appendChild(pop);
+        setTimeout(() => pop.remove(), 800);
+    }
+
+    function evaluarDrop(x, y, ingrediente) {
+        if (ingrediente.tipo === "bonus") {
+            tiempoRestante += 3;
+            playSound('bonus');
+            mostrarPopFlotante("+3s 🧀✨", "#2563eb");
+            ingrediente.id = "queso";
+        }
+
+        const targetX = 130 + Math.cos(ingrediente.zonaAngle) * 55;
+        const targetY = 130 + Math.sin(ingrediente.zonaAngle) * 55;
+
+        const distancia = Math.hypot(x - targetX, y - targetY);
+
+        if (distancia <= 45) {
+            playSound('pop');
+            const offsetX = (Math.random() - 0.5) * 20;
+            const offsetY = (Math.random() - 0.5) * 20;
+
+            ingredientesColocados.push({ emoji: ingrediente.emoji, x: x + offsetX, y: y + offsetY });
+            
+            const conteoObj = (jugadorActual === "Emily") ? conteoEmily : conteoFer;
+            conteoObj[ingrediente.id]++;
+            conteoObj.total++;
+
+            dibujarArena();
+            mezclarBandeja4();
+        }
+    }
+
+    function dibujarArena() {
+        const canvas = document.getElementById("pizzaCanvas");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.beginPath();
+        ctx.arc(130, 130, 120, 0, Math.PI * 2);
+        ctx.fillStyle = "#e5a96c";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(130, 130, 105, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff3bf";
+        ctx.fill();
+
+        const conteoObj = (jugadorActual === "Emily") ? conteoEmily : conteoFer;
+
+        INGREDIENTES.forEach(ing => {
+            const zX = 130 + Math.cos(ing.zonaAngle) * 55;
+            const zY = 130 + Math.sin(ing.zonaAngle) * 55;
+            const meta = requisitosRonda[ing.id];
+            const cumplido = conteoObj[ing.id] >= meta;
+
+            ctx.beginPath();
+            ctx.arc(zX, zY, 32, 0, Math.PI * 2);
+            ctx.lineWidth = ing.id === ingredienteDestacadoId ? 3 : 2;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = cumplido ? "#28a745" : (ing.id === ingredienteDestacadoId ? "#d97706" : "#d63384");
+            ctx.fillStyle = cumplido ? "rgba(40, 167, 69, 0.15)" : "rgba(255, 182, 193, 0.25)";
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillStyle = "#64748b";
+            ctx.textAlign = "center";
+            ctx.fillText(`${ing.nombre} (${conteoObj[ing.id]}/${meta})`, zX, zY - 35);
+        });
+
+        ingredientesColocados.forEach(item => {
+            ctx.font = "18px serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(item.emoji, item.x, item.y);
+        });
+    }
+
+    function iniciarTimer() {
+        clearInterval(temporizador);
+        document.getElementById("timerBadge").innerText = `⏱️ ${tiempoRestante}s`;
+
+        temporizador = setInterval(() => {
+            tiempoRestante--;
+            document.getElementById("timerBadge").innerText = `⏱️ ${tiempoRestante}s`;
+
+            if (tiempoRestante <= 5) {
+                document.getElementById("timerBadge").classList.add("timer-warning");
+            }
+
+            if (tiempoRestante <= 0) {
+                clearInterval(temporizador);
+                juegoActivo = false;
+
+                if (jugadorActual === "Emily") {
+                    document.getElementById("btnStartNext").classList.remove("hidden");
+                } else {
+                    evaluarGanadorRonda();
+                }
+            }
+        }, 1000);
+    }
+
+    function prepararSiguienteTurno() {
+        jugadorActual = "Fer";
+        iniciarRondaJugador();
+    }
+
+    function esPizzaValida(conteo) {
+        return conteo.pepperoni >= requisitosRonda.pepperoni &&
+               conteo.queso >= requisitosRonda.queso &&
+               conteo.champinon >= requisitosRonda.champinon &&
+               conteo.tomate >= requisitosRonda.tomate;
+    }
+
+    function evaluarGanadorRonda() {
+        const emilyValida = esPizzaValida(conteoEmily);
+        const ferValida = esPizzaValida(conteoFer);
+
+        ganadorRonda = "";
+        let htmlResumen = "";
+
+        if (!emilyValida && !ferValida) {
+            ganadorRonda = "EMPATE";
+            htmlResumen = `
+                <p>❌ <strong>Emily:</strong> Penalizada (Pizza incompleta)</p>
+                <p>❌ <strong>Fer:</strong> Penalizado (Pizza incompleta)</p>
+                <p style="margin-top: 8px; font-weight: 700; color: #d63384;">¡EMPATE! Ninguno cumplió los requisitos.</p>
+            `;
+        } else if (!emilyValida && ferValida) {
+            ganadorRonda = "Fer";
+            htmlResumen = `
+                <p>❌ <strong>Emily:</strong> Penalizada (Pizza incompleta)</p>
+                <p>✅ <strong>Fer:</strong> Pizza completa con ${conteoFer.total} ingredientes.</p>
+                <p style="margin-top: 8px; font-weight: 700; color: #0d6efd;">¡Fer gana la ronda! 🏆</p>
+            `;
+        } else if (emilyValida && !ferValida) {
+            ganadorRonda = "Emily";
+            htmlResumen = `
+                <p>✅ <strong>Emily:</strong> Pizza completa con ${conteoEmily.total} ingredientes.</p>
+                <p>❌ <strong>Fer:</strong> Penalizado (Pizza incompleta)</p>
+                <p style="margin-top: 8px; font-weight: 700; color: #d63384;">¡Emily gana la ronda! 🏆</p>
+            `;
+        } else {
+            if (conteoEmily.total > conteoFer.total) {
+                ganadorRonda = "Emily";
+                htmlResumen = `
+                    <p><strong>Emily:</strong> ${conteoEmily.total} ingredientes 🎯</p>
+                    <p><strong>Fer:</strong> ${conteoFer.total} ingredientes 🎯</p>
+                    <p style="margin-top: 8px; font-weight: 700; color: #d63384;">¡Ganadora: Emily! 🏆</p>
+                `;
+            } else if (conteoFer.total > conteoEmily.total) {
+                ganadorRonda = "Fer";
+                htmlResumen = `
+                    <p><strong>Emily:</strong> ${conteoEmily.total} ingredientes 🎯</p>
+                    <p><strong>Fer:</strong> ${conteoFer.total} ingredientes 🎯</p>
+                    <p style="margin-top: 8px; font-weight: 700; color: #0d6efd;">¡Ganador: Fer! 🏆</p>
+                `;
+            } else {
+                ganadorRonda = "EMPATE";
+                htmlResumen = `
+                    <p><strong>Emily:</strong> ${conteoEmily.total} ingredientes 🎯</p>
+                    <p><strong>Fer:</strong> ${conteoFer.total} ingredientes 🎯</p>
+                    <p style="margin-top: 8px; font-weight: 700; color: #854d0e;">🤝 ¡EMPATE EXACTO!</p>
+                `;
+            }
+        }
+
+        document.getElementById("resumenPuntuacion").innerHTML = htmlResumen;
+
+        if (ganadorRonda === "EMPATE") {
+            document.getElementById("tituloResultado").innerText = "🤝 ¡Empate!";
+            document.getElementById("seccionSobre").classList.add("hidden");
+            document.getElementById("seccionEmpate").classList.remove("hidden");
+            document.getElementById("seccionPoema").classList.add("hidden");
+            document.getElementById("modalResultado").classList.add("active");
+        } else {
+            document.getElementById("tituloResultado").innerText = `🏆 ¡Ronda ${numeroRonda} Finalizada!`;
+            document.getElementById("premioGanadorTexto").innerText = `¡${ganadorRonda}, abre tu premio de victoria! 🎁`;
+            document.getElementById("seccionSobre").classList.remove("hidden");
+            document.getElementById("seccionEmpate").classList.add("hidden");
+            document.getElementById("seccionPoema").classList.add("hidden");
+
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+
+            // 🍕 AQUÍ SE ACTIVA EL MINIJUEGO DE CORTE ANTES DE MOSTRAR EL SOBRE
+            iniciarMinijuegoCorte(() => {
+                document.getElementById("modalResultado").classList.add("active");
+            });
+        }
+    }
+
+    function abrirSobre() {
+        document.getElementById("seccionSobre").classList.add("hidden");
+        document.getElementById("seccionPoema").classList.remove("hidden");
+
+        const poema = listaPoemasServidor.length > 0
+            ? listaPoemasServidor[Math.floor(Math.random() * listaPoemasServidor.length)]
+            : "Contigo la velocidad se transforma en amor y risas. ❤️";
+
+        document.getElementById("poemaTexto").innerText = `"${poema}"`;
+
+        fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ganador: ganadorRonda,
+                ingredientes: `Ronda ${numeroRonda}: Emily (${conteoEmily.total}) vs Fer (${conteoFer.total})`,
+                poema: poema
+            })
+        }).then(() => setTimeout(sincronizarBD, 1000));
+    }
+
+    function iniciarNuevaRondaJuego() {
+        numeroRonda++;
+        conteoEmily = { pepperoni: 0, queso: 0, champinon: 0, tomate: 0, total: 0 };
+        conteoFer = { pepperoni: 0, queso: 0, champinon: 0, tomate: 0, total: 0 };
+        jugadorActual = "Emily";
+        
+        document.getElementById("modalResultado").classList.remove("active");
+        establecerRequisitosRonda();
+        iniciarRondaJugador();
+    }
+
+    function confirmarNuevoJuego() {
+        if (confirm("¿Deseas reiniciar la ronda y las puntuaciones acumuladas?")) {
+            fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "reset_all" })
+            }).then(() => {
+                setTimeout(sincronizarBD, 1000);
+                numeroRonda = 1;
+                conteoEmily = { pepperoni: 0, queso: 0, champinon: 0, tomate: 0, total: 0 };
+                conteoFer = { pepperoni: 0, queso: 0, champinon: 0, tomate: 0, total: 0 };
+                jugadorActual = "Emily";
+                document.getElementById("modalResultado").classList.remove("active");
+                establecerRequisitosRonda();
+                iniciarRondaJugador();
+            });
+        }
+    }
+</script>
+</body>
+</html>
